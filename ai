@@ -1,0 +1,73 @@
+import json
+import requests
+
+# Funções auxiliares para ler e escrever arquivos JSON
+def load_json(url):
+    response = requests.get(url)
+    return response.json()
+
+def save_json(data, filepath):
+    with open(filepath, 'w') as file:
+        json.dump(data, file, indent=4)
+
+# URLs dos arquivos
+base_config_url = "https://github.com/DragonSCP/ia.ssh.dragonmods/raw/main/base.config"
+user_requests_url = "https://github.com/DragonSCP/ia.ssh.dragonmods/raw/main/user_requests.config"
+modifications_guide_url = "https://github.com/DragonSCP/ia.ssh.dragonmods/raw/main/modifications_guide.config"
+
+# Carregar configurações
+base_config = load_json(base_config_url)
+user_requests = load_json(user_requests_url)
+modifications_guide = load_json(modifications_guide_url)
+
+# Função para aplicar modificações
+def apply_modifications(base_config, user_requests, modifications_guide):
+    # Verificar e aplicar alterações na porta UDP
+    if 'UdpPort' in user_requests:
+        if isinstance(user_requests['UdpPort'], int) and 1 <= user_requests['UdpPort'] <= 65535:
+            base_config['UdpPort'] = user_requests['UdpPort']
+            base_config['Udp'][0]['Porta'] = user_requests['UdpPort']
+        else:
+            print("Porta UDP inválida.")
+
+    # Verificar e aplicar alterações nos servidores
+    if 'Servers' in user_requests:
+        for user_server in user_requests['Servers']:
+            for server in base_config['Servers']:
+                if 'Name' in user_server:
+                    server['Name'] = user_server['Name']
+                if 'ServerIP' in user_server:
+                    server['ServerIP'] = user_server['ServerIP']
+                if 'CheckUser' in user_server:
+                    server['CheckUser'] = user_server['CheckUser']
+                if 'USER' in user_server:
+                    server['USER'] = user_server['USER']
+                if 'PASS' in user_server:
+                    server['PASS'] = user_server['PASS']
+
+    # Verificar e aplicar alterações nas redes
+    if 'Networks' in user_requests:
+        for user_network in user_requests['Networks']:
+            for network in base_config['Networks']:
+                if 'Name' in user_network:
+                    network['Name'] = user_network['Name']
+                if 'Payload' in user_network:
+                    network['Payload'] = user_network['Payload']
+                if 'SNI' in user_network:
+                    network['SNI'] = user_network['SNI']
+                if 'TlsIP' in user_network:
+                    network['TlsIP'] = user_network['TlsIP']
+                if 'ProxyIP' in user_network:
+                    network['ProxyIP'] = user_network['ProxyIP']
+                if 'ProxyPort' in user_network:
+                    network['ProxyPort'] = user_network['ProxyPort']
+
+    return base_config
+
+# Aplicar as modificações
+updated_config = apply_modifications(base_config, user_requests, modifications_guide)
+
+# Salvar a configuração atualizada
+save_json(updated_config, 'updated_config.json')
+
+print("Configuração atualizada com sucesso. Verifique o arquivo 'updated_config.json' para detalhes.")
